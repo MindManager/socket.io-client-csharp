@@ -118,6 +118,7 @@ namespace SocketIOClient
         //public event EventHandler<string> OnConnectTimeout;
         public event EventHandler<string> OnError;
         public event EventHandler<string> OnDisconnected;
+        public event EventHandler<string> OnDisconnectedInternal;
         //public event EventHandler<string> OnReconnectAttempt;
         public event EventHandler<int> OnReconnecting;
         //public event EventHandler<string> OnReconnectError;
@@ -144,7 +145,7 @@ namespace SocketIOClient
             BelowNormalEvents = new Queue<BelowNormalEvent>();
 
             Disconnected = true;
-            OnDisconnected += SocketIO_OnDisconnected;
+            OnDisconnectedInternal += SocketIO_OnDisconnected;
             GetConnectInterval = () => new DefaultConnectInterval(Options);
             JsonSerializer = new SystemTextJsonSerializer(Options.EIO);
         }
@@ -449,6 +450,7 @@ namespace SocketIOClient
                     v3.StopPingInterval();
                 }
                 OnDisconnected?.Invoke(this, reason);
+                OnDisconnectedInternal?.Invoke(this, reason);
             }
         }
 
@@ -459,7 +461,7 @@ namespace SocketIOClient
 
         private async void SocketIO_OnDisconnected(object sender, string e)
         {
-            if (Options.Reconnection)
+            if (Options.Reconnection && e != "io server disconnect")
             {
                 int attempt = 0;
                 await ConnectCoreAsync(true, () => OnReconnecting?.Invoke(this, ++attempt));
