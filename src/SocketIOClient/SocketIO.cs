@@ -251,20 +251,24 @@ namespace SocketIOClient
                 {
                     _pingTokenSorce.Cancel();
                 }
-                try
-                {
-                    await Socket.SendMessageAsync("41" + Namespace + ',');
-                }
-                catch (Exception ex) { Trace.WriteLine(ex.Message); }
+
+                //It seems we should not send this
+                //try
+                //{
+                //    await Socket.SendMessageAsync("41" + Namespace + ',');
+                //}
+                //catch (Exception ex) { Trace.WriteLine(ex.Message); }
+
                 Connected = false;
                 Disconnected = true;
                 try
                 {
                     await Socket.DisconnectAsync();
                 }
-                catch (Exception ex) { Trace.WriteLine(ex.Message); }
-                finally
+                catch (Exception ex)
                 {
+                    Trace.WriteLine(ex.Message);
+                    //For normal flow we invoke disconnect event after the connection has been closed
                     await InvokeDisconnectAsync("io client disconnect");
                 }
             }
