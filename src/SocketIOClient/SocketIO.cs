@@ -251,14 +251,11 @@ namespace SocketIOClient
                 {
                     _pingTokenSorce.Cancel();
                 }
-
-                //It seems we should not send this
-                //try
-                //{
-                //    await Socket.SendMessageAsync("41" + Namespace + ',');
-                //}
-                //catch (Exception ex) { Trace.WriteLine(ex.Message); }
-
+                try
+                {
+                    await Socket.SendMessageAsync("41" + Namespace + ',');
+                }
+                catch (Exception ex) { Trace.WriteLine(ex.Message); }
                 Connected = false;
                 Disconnected = true;
                 try
