@@ -189,6 +189,18 @@ namespace SocketIOClient
         public async Task ConnectAsync()
         {
             Uri wsUri = UrlConverter.HttpToWs(ServerUri, Options);
+
+            if (_connectionTokenSorce.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await Socket.ConnectAsync(wsUri);
+        }
+
+        private async Task ReconnectAsync()
+        {
+            Uri wsUri = UrlConverter.HttpToWs(ServerUri, Options);
             while (true)
             {
                 try
@@ -197,14 +209,10 @@ namespace SocketIOClient
                     {
                         break;
                     }
-                    if (Attempts == 0)
-                    {
-                        _reconnectionDelay = Options.ReconnectionDelay;
-                    }
-                    else if (Attempts > 0)
-                    {
-                        OnReconnectAttempt?.Invoke(this, Attempts);
-                    }
+
+                    _reconnectionDelay = Options.ReconnectionDelay;
+                    OnReconnectAttempt?.Invoke(this, Attempts);
+
                     await Socket.ConnectAsync(wsUri);
                     break;
                 }
@@ -633,7 +641,7 @@ namespace SocketIOClient
                     //In the this cases (explicit disconnection), the client will not try to reconnect and you need to manually call socket.connect().
                     if (Options.Reconnection)
                     {
-                        await ConnectAsync();
+                        await ReconnectAsync();
                     }
                 }
             }
