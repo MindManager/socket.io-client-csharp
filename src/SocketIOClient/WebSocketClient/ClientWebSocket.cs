@@ -147,8 +147,9 @@ namespace SocketIOClient.WebSocketClient
 
         public async Task DisconnectAsync()
         {
-            await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
-            OnClosed("io client disconnect");
+            var reason = "io client disconnect";
+            await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, CancellationToken.None);
+            OnClosed(reason);
         }
 
         private async Task ListenAsync(CancellationToken cancellationToken)
@@ -170,7 +171,7 @@ namespace SocketIOClient.WebSocketClient
                         result = await _ws.ReceiveAsync(new ArraySegment<byte>(subBuffer), cancellationToken);
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            OnClosed("io server disconnect");
+                            OnClosed(result.CloseStatusDescription ?? string.Empty);
                             break;
                         }
                         else if (result.MessageType == WebSocketMessageType.Text || result.MessageType == WebSocketMessageType.Binary)

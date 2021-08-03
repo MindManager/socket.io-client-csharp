@@ -254,15 +254,14 @@ namespace SocketIOClient
                     await Socket.SendMessageAsync("41" + Namespace + ',');
                 }
                 catch (Exception ex) { Trace.WriteLine(ex.Message); }
-                Connected = false;
-                Disconnected = true;
                 try
                 {
                     await Socket.DisconnectAsync();
                 }
-                catch (Exception ex) { Trace.WriteLine(ex.Message); }
-                finally
+                catch (Exception ex)
                 {
+                    Trace.WriteLine(ex.Message);
+                    //For normal flow it will be invoked when real disconnection happens
                     await InvokeDisconnectAsync("io client disconnect");
                 }
             }
