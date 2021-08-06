@@ -47,7 +47,7 @@ namespace SocketIOClient.WebSocketClient
                 await _ws.ConnectAsync(uri, wsConnectionTokenSource.Token).ConfigureAwait(false);
                 DisposeListenTokenIfNotNull();
                 _listenToken = new CancellationTokenSource();
-                _ = ListenAsync(_listenToken.Token);
+                _ = Task.Factory.StartNew( async () => await ListenAsync(_listenToken.Token).ConfigureAwait(false), TaskCreationOptions.LongRunning);
             }
             catch (TaskCanceledException)
             {
