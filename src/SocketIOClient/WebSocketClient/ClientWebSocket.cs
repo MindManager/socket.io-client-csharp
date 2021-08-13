@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
 using SocketIOClient.Exceptions;
+using System.Diagnostics;
 
 namespace SocketIOClient.WebSocketClient
 {
@@ -147,8 +148,15 @@ namespace SocketIOClient.WebSocketClient
 
         public async Task DisconnectAsync()
         {
+            Debug.WriteLine($"{nameof(DisconnectAsync)} 1");
+
             OnClosed("io client disconnect");
+
+            Debug.WriteLine($"{nameof(DisconnectAsync)} 2");
+
             await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+            Debug.WriteLine($"{nameof(DisconnectAsync)} 3");
         }
 
         private async Task ListenAsync(CancellationToken cancellationToken)
@@ -160,7 +168,7 @@ namespace SocketIOClient.WebSocketClient
                 var buffer = new byte[ReceiveChunkSize];
                 int count = 0;
                 WebSocketReceiveResult result = null;
-                while (_ws.State == WebSocketState.Open)
+                while (_ws.State == WebSocketState.Open /*|| _ws.State == WebSocketState.CloseSent || _ws.State == WebSocketState.CloseReceived*/)
                 {
                     try
                     {
@@ -168,8 +176,15 @@ namespace SocketIOClient.WebSocketClient
                             break;
                         var subBuffer = new byte[ReceiveChunkSize];
                         result = await _ws.ReceiveAsync(new ArraySegment<byte>(subBuffer), cancellationToken).ConfigureAwait(false);
+
+                        if (_ws.State != WebSocketState.Open)
+                        {
+                            Debug.WriteLine($"{nameof(ListenAsync)} State: {_ws.State}");
+                        }
+
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
+                            Debug.WriteLine($"{nameof(ListenAsync)} {WebSocketMessageType.Close} State: {_ws.State}");
                             OnClosed("io server disconnect");
                             break;
                         }
@@ -201,7 +216,7 @@ namespace SocketIOClient.WebSocketClient
                 {
                     string message = Encoding.UTF8.GetString(buffer, 0, count);
 #if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"⬇ {DateTime.Now} {message}");
+                    //System.Diagnostics.Trace.WriteLine($"⬇ {DateTime.Now} {message}");
 #endif
                     if (OnTextReceived is null)
                     {
@@ -223,6 +238,8 @@ namespace SocketIOClient.WebSocketClient
                     OnBinaryReceived(bytes);
                 }
             }
+
+            Debug.WriteLine($"{nameof(ListenAsync)} End. State: {_ws.State}");
         }
 
         public Action<string> OnTextReceived { get; set; }

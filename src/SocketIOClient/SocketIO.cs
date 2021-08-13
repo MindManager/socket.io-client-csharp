@@ -256,7 +256,7 @@ namespace SocketIOClient
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine(ex.Message);
+                    Trace.WriteLine($"Exception in {nameof(DisconnectAsync)}; {ex.Message}");
                     await InvokeDisconnectAsync("io client disconnect").ConfigureAwait(false);
                 }
             }
