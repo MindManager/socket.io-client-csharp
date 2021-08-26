@@ -251,7 +251,8 @@ namespace SocketIOClient
                 }
                 try
                 {
-                    await Socket.SendMessageAsync("41" + Namespace + ',');
+                    var message = string.IsNullOrEmpty(Namespace) ? "41" : $"41{Namespace},";
+                    await Socket.SendMessageAsync(message);
                 }
                 catch (Exception ex) { Trace.WriteLine(ex.Message); }
                 try
