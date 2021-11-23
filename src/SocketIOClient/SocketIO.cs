@@ -497,10 +497,20 @@ namespace SocketIOClient
 
         private async void OpenedHandler(string sid, int pingInterval, int pingTimeout)
         {
-            Id = sid;
-            _pingInterval = pingInterval;
-            string msg = Options.EioHandler.CreateConnectionMessage(Namespace, Options.Query);
-            await Socket.SendMessageAsync(msg).ConfigureAwait(false);
+            try
+            {
+                Id = sid;
+                _pingInterval = pingInterval;
+                string msg = Options.EioHandler.CreateConnectionMessage(Namespace, Options.Query);
+                await Socket.SendMessageAsync(msg).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                ErrorHandler(e.Message);
+
+                Attempts++;
+                await ConnectAsync().ConfigureAwait(false);
+            }
         }
 
         private void ConnectedHandler(ConnectionResult result)
