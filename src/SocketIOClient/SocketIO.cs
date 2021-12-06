@@ -122,6 +122,8 @@ namespace SocketIOClient
         /// </summary>
         public bool Disconnected { get; private set; }
 
+        public bool Disposed { get; private set; }
+
         public SocketIOOptions Options { get; }
 
         public IJsonSerializer JsonSerializer { get; set; }
@@ -182,6 +184,7 @@ namespace SocketIOClient
             _lowLevelEvents = new Queue<LowLevelEvent>();
 
             Disconnected = true;
+            Disposed = false;
             JsonSerializer = new SystemTextJsonSerializer(Options.EIO);
             _connectionTokenSorce = new CancellationTokenSource();
         }
@@ -200,10 +203,11 @@ namespace SocketIOClient
             {
                 try
                 {
-                    if (_connectionTokenSorce.IsCancellationRequested)
+                    if (Disposed || _connectionTokenSorce.IsCancellationRequested)
                     {
                         break;
                     }
+
                     if (Attempts > 0)
                     {
                         OnReconnectAttempt?.Invoke(this, Attempts);
@@ -630,17 +634,28 @@ namespace SocketIOClient
             {
                 Connected = false;
                 Disconnected = true;
-                if (Options.EIO == 3)
+
+                if (!Disposed)
                 {
-                    _pingTokenSorce.Cancel();
-                }
-                OnDisconnected?.Invoke(this, reason);
-                if (reason != "io server disconnect" && reason != "io client disconnect")
-                {
-                    //In the this cases (explicit disconnection), the client will not try to reconnect and you need to manually call socket.connect().
-                    if (Options.Reconnection)
+                    try
                     {
-                        await ConnectAsync().ConfigureAwait(false);
+                        if (Options.EIO == 3)
+                        {
+                            _pingTokenSorce.Cancel();
+                        }
+                        OnDisconnected?.Invoke(this, reason);
+                        if (reason != "io server disconnect" && reason != "io client disconnect")
+                        {
+                            //In the this cases (explicit disconnection), the client will not try to reconnect and you need to manually call socket.connect().
+                            if (Options.Reconnection)
+                            {
+                                await ConnectAsync().ConfigureAwait(false);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.TraceError(ex.ToString());
                     }
                 }
             }
@@ -648,7 +663,7 @@ namespace SocketIOClient
 
         public async Task StartPingAsync()
         {
-            while (!_pingTokenSorce.IsCancellationRequested)
+            while (!Disposed && !_pingTokenSorce.IsCancellationRequested)
             {
                 await Task.Delay(_pingInterval).ConfigureAwait(false);
                 if (Connected)
@@ -678,24 +693,32 @@ namespace SocketIOClient
 
         public void StopPingInterval()
         {
-            _pingTokenSorce?.Cancel();
+            if (!Disposed)
+            {
+                _pingTokenSorce?.Cancel();
+            }
         }
 
         public void Dispose()
         {
-            Socket.Dispose();
+            Socket?.Dispose();
             _outGoingBytes.Clear();
             _ackHandlers.Clear();
             _onAnyHandlers.Clear();
             _eventHandlers.Clear();
             _lowLevelEvents.Clear();
-            _connectionTokenSorce.Cancel();
-            _connectionTokenSorce.Dispose();
+            if (_connectionTokenSorce != null)
+            {
+                _connectionTokenSorce.Cancel();
+                _connectionTokenSorce.Dispose();
+            }
             if (_pingTokenSorce != null)
             {
                 _pingTokenSorce.Cancel();
                 _pingTokenSorce.Dispose();
             }
+
+            Disposed = true;
         }
     }
 }
